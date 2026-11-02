@@ -1,3 +1,10 @@
+/**
+ * Smoke tests for lib/office.js.
+ *
+ * Fixtures are built in memory with the module's own writeZip, so the suite has
+ * no files on disk and no dependency. Run with `npm test` (in-process, works in
+ * sandboxed terminals that cannot spawn child processes).
+ */
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { finalizeOdf, finalizeDocx, inspectPdf, readZip, writeZip } from '../lib/office.js'

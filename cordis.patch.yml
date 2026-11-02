@@ -1,3 +1,6 @@
+# Bundle patch applied by `install_bundle`.
+# Inserts one plugin row; the config below is the documented default (see README).
+# `author: ''` means: clear library names, write no person's name.
 - insert:
     - id: dsh-finalize
       name: 'dsh-finalize'
