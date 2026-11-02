@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "交付检查",
+    "description": "文件交付前跑一遍：清掉 python-docx / python-pptx / openpyxl / LibreOffice 之类的生成器痕迹、重算统计字段，并把不能靠编造解决的项收进侧边面板。支持 docx、pptx、xlsx、odt、ods、odp、pdf（pdf 只读）。"
+  }
+}

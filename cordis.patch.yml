@@ -1,0 +1,23 @@
+- insert:
+    - id: dsh-finalize
+      name: 'dsh-finalize'
+      config:
+        author: ''
+        triggerTools:
+          - present
+          - qqbot_send_file
+        formats:
+          - docx
+          - pptx
+          - xlsx
+          - pdf
+          - odt
+          - ods
+          - odp
+        scanLimit: 5
+        autoFix:
+          stripGeneratorFields: true
+          dropApplicationField: true
+          recomputeStats: true
+        report:
+          surface: panel

@@ -1,0 +1,63 @@
+{
+  "name": "dsh-finalize",
+  "version": "0.3.0",
+  "description": "Pre-delivery finalize pass for docx, pptx, xlsx, odt, ods, odp and pdf: strips tool fingerprints, recomputes real statistics, and reports everything it will not fabricate.",
+  "type": "module",
+  "license": "MIT",
+  "author": "hengyun721",
+  "homepage": "https://github.com/hengyun721/dsh-finalize#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hengyun721/dsh-finalize.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hengyun721/dsh-finalize/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "docx",
+    "pptx",
+    "xlsx",
+    "odf",
+    "ooxml",
+    "document-metadata"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib/*.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test/smoke.test.mjs",
+    "check": "node --check index.js && node --check client.js && node --check lib/office.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Delivery check">
+  <rect x="10" y="8" width="36" height="48" rx="4" fill="none" stroke="#2f6f5e" stroke-width="3"/>
+  <path d="M18 20h20M18 28h20M18 36h12" stroke="#2f6f5e" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="44" cy="42" r="13" fill="#2f6f5e"/>
+  <path d="M38 42.5l4 4 7-8" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
