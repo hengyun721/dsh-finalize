@@ -7,8 +7,10 @@
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { join } from 'node:path'
 import { finalizeOdf, finalizeDocx, finalizeOffice, inspectPdf, readZip, writeZip } from '../lib/office.js'
 import { checkPunctuation, detectLanguage } from '../lib/punctuation.js'
+import { resolveTarget } from '../index.js'
 
 const ODF_CONTENT = `<?xml version="1.0" encoding="UTF-8"?>
 <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" office:version="1.2">
@@ -167,6 +169,13 @@ test('punctuation findings carry per-occurrence samples for the panel', () => {
   assert.ok(item)
   assert.equal(item.samples.length, 3)
   assert.ok(item.samples.every((sample) => sample.before && sample.after && sample.rule))
+})
+
+test('relative delivery paths resolve against the session cwd', () => {
+  const base = join(process.cwd(), 'ws')
+  assert.equal(resolveTarget(base, 'a/b.docx'), join(base, 'a', 'b.docx'))
+  const absolute = join(base, 'x.docx')
+  assert.equal(resolveTarget(base, absolute), absolute)
 })
 
 test('unbalanced quotes are reported', () => {

@@ -1,6 +1,6 @@
 {
   "name": "dsh-finalize",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Pre-delivery finalize pass for docx, pptx, xlsx, odt, ods, odp and pdf: strips tool fingerprints, recomputes real statistics, checks punctuation across six languages, and reports everything it will not fabricate.",
   "type": "module",
   "license": "MIT",

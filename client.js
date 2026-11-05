@@ -99,6 +99,7 @@ window.__ModuleLoader__.load({
           h('span', { style: { fontSize: 13, fontWeight: 600, color: tone.text, wordBreak: 'break-all', flex: 1 } }, file.name),
           h('span', { style: { fontSize: 11, color: tone.sub, whiteSpace: 'nowrap' } }, `${fixed} 已修 · ${open} 待人工`)),
         h('div', { style: { fontSize: 11, color: tone.sub, marginTop: 2 } }, file.path),
+        file.requestedPath ? h('div', { style: { fontSize: 11, color: tone.sub, marginTop: 2 } }, `请求路径：${file.requestedPath}`) : null,
         file.error ? h(Row, { label: '错误', value: file.error, color: tone.warn }) : null,
         file.skipped ? h(Row, { label: LABELS.skipped, value: file.skipped }) : null,
         ...(file.notes ?? []).map((item, i) => h(Row, { key: `n${i}`, label: `只读 · ${item.item}`, value: item.detail })),
@@ -109,10 +110,11 @@ window.__ModuleLoader__.load({
     function Panel({ state, nonce, refresh, onScan, onClose }) {
       const report = state.report
       const count = (report?.files ?? []).reduce((sum, file) => sum + (file.unresolved?.length ?? 0), 0)
+      const failed = (report?.files ?? []).filter((file) => file.error).length
       const header = h('header', { style: { display: 'flex', alignItems: 'center', gap: 10 } },
         h('strong', { style: { fontSize: 15 } }, LABELS.title),
         h('span', { style: { fontSize: 11, color: tone.sub } },
-          report ? `${(report.files ?? []).length} files · ${count} open · ${report.ms}ms` : ''),
+          report ? `${(report.files ?? []).length} files · ${count} open${failed > 0 ? ` · ${failed} 失败` : ''} · ${report.ms}ms` : ''),
         h('span', { style: { flex: 1 } }),
         h('button', {
           onClick: onScan,

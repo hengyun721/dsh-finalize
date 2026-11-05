@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-11-05
+
+### Fixed
+
+- Relative delivery paths are resolved against the session working directory
+  instead of the Host process directory. Previously `present` with a relative
+  path produced `ENOENT`, which the hook swallowed, so the file was delivered
+  untouched while the panel looked empty.
+- A file that cannot be read now becomes a `处理失败` item in the report: it is
+  counted in the action-row badge, shown with the error message, and lists the
+  original path next to the resolved one instead of disappearing.
+
+### Added
+
+- The panel header reports how many files failed next to the open-item count.
+
 ## [0.7.0] - 2026-11-05
 
 ### Added

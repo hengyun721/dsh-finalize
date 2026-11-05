@@ -65,6 +65,8 @@ Or from inside the Harness, install the checkout directory with the plugin manag
 
 Nothing to call. Deliver a file with `present` (or a configured transport) and the pass runs **before** the tool executes, so the file on disk is already normalized when it reaches the recipient. The text check runs only for delivered documents — ordinary chat replies are never scanned.
 
+Relative paths are resolved against the session's working directory, not the Host process directory. A file that cannot be read is reported as a failure in the panel, counted in the badge, and shown with the original path next to the resolved one — it never disappears silently.
+
 A shield icon appears in the message action row next to copy / like / dislike / branch:
 
 | State | Meaning |

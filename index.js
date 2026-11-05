@@ -9,7 +9,7 @@
  */
 import { readFile, writeFile, stat, readdir, appendFileSync } from 'node:fs'
 import { promisify } from 'node:util'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { finalizeOffice, extractParagraphs } from './lib/office.js'
 import { checkPunctuation } from './lib/punctuation.js'
@@ -82,6 +82,17 @@ function filesOf(args) {
 const normalize = (text) => String(text ?? '').replace(/\s+/g, ' ').trim()
 
 /**
+ * Resolve a delivery path the way the delivery tool did: relative paths belong
+ * to the session's working directory, not to the Host process cwd.
+ * @param {string} base session working directory
+ * @param {string} target path as given to `present`
+ */
+export function resolveTarget(base, target) {
+  const value = String(target ?? '')
+  return isAbsolute(value) ? value : resolve(base, value)
+}
+
+/**
  * Find the document the user supplied and read its paragraphs.
  *
  * Explicit `textCheck.templates` wins. Otherwise the newest sibling Office file
@@ -131,9 +142,10 @@ async function findBaseline(path, ext, config, deliveredBytes) {
   return null
 }
 
-async function processOne(path, config) {
+async function processOne(path, config, requested = path) {
   const ext = extname(path).toLowerCase().replace('.', '')
   const entry = { path, name: basename(path), format: ext, fixed: [], unresolved: [], notes: [] }
+  if (requested !== path) entry.requestedPath = requested
   if (!(config?.formats ?? ['docx']).includes(ext)) {
     entry.skipped = `format "${ext}" is outside this adapter set`
     return entry
@@ -153,20 +165,26 @@ async function processOne(path, config) {
     if (baseline) entry.baseline = baseline.name
   } catch (error) {
     entry.error = error instanceof Error ? error.message : String(error)
+    entry.unresolved.push({
+      item: '处理失败',
+      detail: `文件没有被检查：${entry.error}`,
+      hint: '确认路径存在且在工作区内；相对路径按会话工作目录解析，原始参数见 requestedPath',
+    })
   }
   return entry
 }
 
-async function runFinalize(exec, config) {
+async function runFinalize(ctx, exec, config) {
   const started = Date.now()
   const sessionId = sessionOf(exec)
   const paths = filesOf(argsOf(exec))
-  const report = { at: new Date().toISOString(), sessionId: sessionId ?? null, files: [], ms: 0, runs: 1 }
-  trace(`run start tool=${toolNameOf(exec)} files=${paths.length}`)
-  for (const path of paths) report.files.push(await processOne(path, config))
+  const base = exec?.agent?.session?.cwd ?? ctx?.get?.('workingDirectory')?.defaultDirectory ?? process.cwd()
+  const report = { at: new Date().toISOString(), sessionId: sessionId ?? null, base, files: [], ms: 0, runs: 1 }
+  trace(`run start tool=${toolNameOf(exec)} files=${paths.length} base=${base}`)
+  for (const path of paths) report.files.push(await processOne(resolveTarget(base, path), config, path))
   report.ms = Date.now() - started
   remember(sessionId, report)
-  trace(`run done files=${report.files.length} fixed=${report.files.reduce((n, f) => n + f.fixed.length, 0)} open=${report.files.reduce((n, f) => n + f.unresolved.length, 0)}`)
+  trace(`run done files=${report.files.length} fixed=${report.files.reduce((n, f) => n + f.fixed.length, 0)} open=${report.files.reduce((n, f) => n + f.unresolved.length, 0)} failed=${report.files.filter((f) => f.error).length}`)
   if (DEBUG) {
     try {
       await writeFileAsync(join(tmpdir(), 'dsh-finalize-last.json'), JSON.stringify({ at: report.at, tool: toolNameOf(exec), sessionId: sessionId ?? null, paths, merged: reports.get(sessionId)?.files.length ?? report.files.length }, null, 2), 'utf8')
@@ -216,7 +234,7 @@ export function apply(ctx, config = {}) {
   ctx.effect(() => ctx.on('tools/pre-execute', async (exec, next) => {
     const tool = toolNameOf(exec)
     if (!enabled || !trigger.has(tool)) return next()
-    try { await runFinalize(exec, config) } catch (error) { trace(`run failed: ${error instanceof Error ? error.message : String(error)}`) }
+    try { await runFinalize(ctx, exec, config) } catch (error) { trace(`run failed: ${error instanceof Error ? error.message : String(error)}`) }
     return next()
   }), 'dsh-finalize.hook()')
 
