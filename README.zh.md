@@ -25,7 +25,7 @@
 | `pptx` | 同套 core 属性、幻灯片/备注/隐藏页统计、字数 | 没有演讲者备注、裁剪图片的原图仍在 `ppt/media`、隐藏幻灯片 |
 | `xlsx` | core 属性、`TitlesOfParts` 与实际 sheet 名对齐 | 全表 0 条公式、透视缓存残留已删除的数据、外部链接、隐藏工作表 |
 | `odt` `ods` `odp` | `meta:generator`、作者、日期、`meta:document-statistic`、缩略图及其 manifest 条目 | `meta:editing-duration=PT0S`、只保存过一次、没有批注、没有修订 |
-| `pdf` | **什么都不改——只读** | Producer/Creator/XMP、增量更新、缺少书签、数字签名 |
+| `pdf` | **什么都不改——只读** | Producer/Creator/XMP、增量更新、缺少书签、数字签名、可提取文本里的标点 |
 
 一次交付多个文件，会逐个独立处理；同一会话里多次交付，30 分钟内合并成一份报告，而不是互相覆盖。
 
@@ -42,7 +42,9 @@
 
 另外还会查：标点前的多余空格、三个以上连续重复的标点、不成对的 `“ ”` / `「 」` / `『 』`。
 
-**只报不改**——盲替换标点误伤代码、URL、公式和引用的概率远高于收益。检查会跳过 URL、邮箱、路径和小数；表格单元格只检查长度超过 8 个字符的内容；PDF 文本层不检查，因为提取依赖字体与编码信息。
+**只报不改**——盲替换标点误伤代码、URL、公式和引用的概率远高于收益。检查会跳过 URL、邮箱、路径、小数和列表编号（`1.`、`3.2`）；表格单元格只检查长度超过 8 个字符的内容。
+
+PDF 会尝试解码文本层：Flate 压缩的内容流、`Tj`/`TJ` 操作符，以及每个字体的 `ToUnicode` 映射（含 Identity-H CID 字体），所以 Word / LibreOffice 导出的 PDF 能覆盖。扫描件、没有 `ToUnicode` 的字体、把文字转成轮廓的页面读不出来——这类文件会明确标注「未检查」，而不是猜。
 
 ## 安装
 
@@ -111,6 +113,7 @@ dsh plugin --profile desktop add /绝对路径/dsh-finalize
 | `client.js` | 客户端半边。把盾牌按钮注册进 `conversation.chat.assistant-actions`，渲染报告面板（固定覆盖层、使用主题变量、不越界写 DOM）。 |
 | `lib/office.js` | 格式引擎，零依赖。ZIP 读写（`node:zlib`）、OOXML 适配器（`docx`/`pptx`/`xlsx`）、ODF 适配器（`odt`/`ods`/`odp`）、只读 PDF 检查器。 |
 | `lib/punctuation.js` | 文本检查器。逐段判定语言（`zh`/`ja`/`ko`/`en`/`fr`/`de`）并执行标点规则，返回带上下文片段和建议替换的分组结果。 |
+| `lib/pdf-text.js` | 启发式 PDF 文本提取：对象流、Flate 内容流、`Tj`/`TJ` 解码、`ToUnicode` CMap。只服务于标点检查，不写文件。 |
 | `cordis.patch.yml` | bundle 补丁：插入 `dsh-finalize` 插件行和默认配置。`install_bundle` 应用到 profile 的就是它。 |
 | `package.json` | 包清单：`dsh.bundle.patch`、Web 半边声明（`platform`、`immediately`、`inject`）、导出表、`check` / `test` 脚本。 |
 | `locale/en.json`、`locale/zh.json` | 插件管理器与设置页读取的展示信息（`meta.title`、`meta.description`），无需激活插件即可读取。 |

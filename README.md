@@ -25,7 +25,7 @@ The usual advice — forge the edit time, invent a revision count — makes thin
 | `pptx` | same core properties, slide/notes/hidden-slide counts, word counts | no speaker notes, cropped images still in `ppt/media`, hidden slides |
 | `xlsx` | core properties, `TitlesOfParts` aligned to sheet names | zero formulas, pivot cache retaining deleted rows, external links, hidden sheets |
 | `odt` `ods` `odp` | `meta:generator`, creator, dates, `meta:document-statistic`, thumbnail and its manifest entry | `meta:editing-duration=PT0S`, single save cycle, no annotations, no tracked changes |
-| `pdf` | **nothing — read-only by design** | Producer/Creator/XMP, incremental updates, missing bookmarks, signatures |
+| `pdf` | **nothing — read-only by design** | Producer/Creator/XMP, incremental updates, missing bookmarks, signatures, punctuation in extractable text |
 
 Several files in one delivery are processed independently. Several deliveries in one session merge into a single report for 30 minutes instead of overwriting each other.
 
@@ -42,7 +42,9 @@ When a document is delivered, its paragraphs are also checked for punctuation th
 
 Also flagged: spaces before punctuation, three or more repeated marks, and unbalanced `“ ”` / `「 」` / `『 』`.
 
-Findings are **reported, never rewritten** — a blind character swap damages code, URLs, formulas and citations far more often than it helps. URLs, e-mail addresses, paths and decimals are skipped entirely; spreadsheet cells are only checked when longer than eight characters; PDF text layers are not checked because extracting them needs font and encoding information.
+Findings are **reported, never rewritten** — a blind character swap damages code, URLs, formulas and citations far more often than it helps. URLs, e-mail addresses, paths, decimals and list numbers (`1.`, `3.2`) are skipped entirely; spreadsheet cells are only checked when longer than eight characters.
+
+PDF text is decoded from the text layer: Flate content streams, `Tj`/`TJ` operators and per-font `ToUnicode` maps, including Identity-H CID fonts, so Word and LibreOffice exports are covered. Scanned pages, fonts without a `ToUnicode` map and text drawn as outlines cannot be read — those files are reported as *not checked* rather than guessed at.
 
 ## Install
 
@@ -111,6 +113,7 @@ The panel also offers **Scan recent files**, which runs the pass on the newest O
 | `client.js` | Browser half. Registers the shield button into `conversation.chat.assistant-actions` and renders the report panel (fixed overlay, theme tokens, no DOM writes outside its own tree). |
 | `lib/office.js` | Format engine, dependency-free. ZIP reader/writer (`node:zlib`), OOXML adapters (`docx`/`pptx`/`xlsx`), ODF adapter (`odt`/`ods`/`odp`), read-only PDF inspector. |
 | `lib/punctuation.js` | Text checker. Per-paragraph language detection (`zh`/`ja`/`ko`/`en`/`fr`/`de`) and the punctuation rules; returns grouped findings with snippets and suggested replacements. |
+| `lib/pdf-text.js` | Heuristic PDF text extraction: object streams, Flate content streams, `Tj`/`TJ` decoding and `ToUnicode` CMaps. Used only for the punctuation check; it never writes. |
 | `cordis.patch.yml` | Bundle patch: inserts the `dsh-finalize` row and the default config. This is what `install_bundle` applies to the profile. |
 | `package.json` | Package manifest: `dsh.bundle.patch`, the `dsh.client` web half (`platform`, `immediately`, `inject`), the export map, and the `check` / `test` scripts. |
 | `locale/en.json`, `locale/zh.json` | Display metadata read by the Plugin Manager and Settings without activating the plugin: `meta.title`, `meta.description`. |

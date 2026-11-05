@@ -7,7 +7,7 @@
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { finalizeOdf, finalizeDocx, inspectPdf, readZip, writeZip } from '../lib/office.js'
+import { finalizeOdf, finalizeDocx, finalizeOffice, inspectPdf, readZip, writeZip } from '../lib/office.js'
 import { checkPunctuation, detectLanguage } from '../lib/punctuation.js'
 
 const ODF_CONTENT = `<?xml version="1.0" encoding="UTF-8"?>
@@ -134,7 +134,62 @@ test('urls and decimals are not treated as punctuation errors', () => {
   assert.equal(checkPunctuation(['访问 https://example.com/a,b 查看版本 1.5 的说明。']).total, 0)
 })
 
+test('list numbers such as 1. are not mistaken for punctuation errors', () => {
+  assert.equal(checkPunctuation(['1.学生第一学年须修满学分。']).total, 0)
+  assert.equal(checkPunctuation(['3.2 课程设置与学分要求']).total, 0)
+})
+
 test('unbalanced quotes are reported', () => {
   const result = checkPunctuation(['他说：“你好。'])
   assert.ok(result.groups.some((group) => group.rule === 'quotes'))
+})
+
+function buildPdf(bodies) {
+  let out = '%PDF-1.4\n'
+  bodies.forEach((body, index) => {
+    out += `${index + 1} 0 obj\n${body}\nendobj\n`
+  })
+  return Buffer.from(`${out}trailer\n<< /Root 1 0 R >>\n%%EOF\n`, 'latin1')
+}
+
+test('pdf: extracts latin text and checks its punctuation', () => {
+  const pdf = buildPdf([
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /Resources 4 0 R /Contents 5 0 R >>',
+    '<< /Font << /F1 6 0 R >> >>',
+    '<< /Length 52 >>\nstream\nBT /F1 12 Tf 72 700 Td (Hello,world.) Tj ET\nendstream',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ])
+  const result = finalizeOffice(pdf, 'pdf', { textCheck: { punctuation: true } })
+  assert.ok(result.report.notes.some((item) => item.item === '标点'))
+  assert.ok(!result.report.unresolved.some((item) => item.item === '标点'))
+})
+
+test('pdf: decodes Identity-H ToUnicode and flags a chinese comma', () => {
+  const cmap = '/CIDInit /ProcSet findresource begin\nbegincmap\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n3 beginbfchar\n<0001> <4E2D>\n<0002> <6587>\n<0003> <002C>\nendbfchar\nendcmap\nend\nend'
+  const pdf = buildPdf([
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /Resources 4 0 R /Contents 5 0 R >>',
+    '<< /Font << /F1 6 0 R >> >>',
+    '<< /Length 55 >>\nstream\nBT /F1 12 Tf 72 700 Td <000100030002> Tj ET\nendstream',
+    '<< /Type /Font /Subtype /Type0 /BaseFont /SimSun /Encoding /Identity-H /ToUnicode 7 0 R >>',
+    `<< /Length ${cmap.length} >>\nstream\n${cmap}\nendstream`,
+  ])
+  const result = finalizeOffice(pdf, 'pdf', { textCheck: { punctuation: true } })
+  const finding = result.report.unresolved.find((item) => item.item === '标点')
+  assert.ok(finding)
+  assert.ok(finding.detail.includes('中文'))
+  assert.equal(result.bytes.equals(pdf), true)
+})
+
+test('pdf: scanned pages without a text layer are reported, not guessed', () => {
+  const pdf = buildPdf([
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R >>',
+  ])
+  const result = finalizeOffice(pdf, 'pdf', { textCheck: { punctuation: true } })
+  assert.ok(result.report.notes.some((item) => item.detail.includes('未提取到文本层')))
 })

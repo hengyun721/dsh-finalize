@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-11-05
+
+### Added
+
+- PDF text extraction for the punctuation check: object streams (`/Type /ObjStm`),
+  Flate content streams, `Tj` / `TJ` / `'` operators, literal and hex strings,
+  and per-font `ToUnicode` CMaps including Identity-H CID fonts.
+- Files with no readable text layer (scans, outline text, fonts without a
+  `ToUnicode` map) are reported as *not checked* instead of being guessed at.
+
+### Fixed
+
+- List and section numbers (`1.`, `3.2`, `1)`) are no longer reported as
+  punctuation errors when they precede Chinese text.
+
 ## [0.4.0] - 2026-11-05
 
 ### Added
