@@ -42,7 +42,7 @@ When a document is delivered, its paragraphs are also checked for punctuation th
 
 Also flagged: spaces before punctuation, three or more repeated marks, and unbalanced `“ ”` / `「 」` / `『 』`.
 
-Findings are **reported, never rewritten** — a blind character swap damages code, URLs, formulas and citations far more often than it helps. URLs, e-mail addresses, paths, decimals and list numbers (`1.`, `3.2`) are skipped entirely; spreadsheet cells are only checked when longer than eight characters.
+Findings are **reported, never rewritten** — a blind character swap damages code, URLs, formulas and citations far more often than it helps. In the panel every finding group can be expanded into its individual occurrences (up to 50, each with the original snippet and the suggested replacement). URLs, e-mail addresses, paths, decimals and list numbers (`1.`, `3.2`) are skipped entirely; spreadsheet cells are only checked when longer than eight characters.
 
 PDF text is decoded from the text layer: Flate content streams, `Tj`/`TJ` operators and per-font `ToUnicode` maps, including Identity-H CID fonts, so Word and LibreOffice exports are covered. Scanned pages, fonts without a `ToUnicode` map and text drawn as outlines cannot be read — those files are reported as *not checked* rather than guessed at.
 
@@ -166,6 +166,8 @@ Built to sit beside other plugins without changing their behaviour.
 ## Debugging
 
 Set `DSH_FINALIZE_DEBUG=1` before starting the Harness to write `dsh-finalize.log` and `dsh-finalize-last.json` into the OS temp directory. Off by default; nothing is written to your workspace.
+
+Nothing else touches the disk: document bytes are read into memory and written back in place, there are no temporary copies, no sidecar files and no cache. On Windows the debug files land in `%TEMP%` (`C:\Users\<user>\AppData\Local\Temp`), on macOS and Linux in `$TMPDIR` and `/tmp`.
 
 ## Development
 

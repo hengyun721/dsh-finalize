@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-11-05
+
+### Added
+
+- The panel can expand a punctuation finding into its individual occurrences:
+  up to 50 entries, each with the original snippet and the suggested
+  replacement. The summary row is unchanged, so a document with forty identical
+  commas still takes one line until you open it.
+
 ## [0.6.0] - 2026-11-05
 
 ### Changed

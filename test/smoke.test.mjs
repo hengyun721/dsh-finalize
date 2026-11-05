@@ -60,10 +60,10 @@ const DOCX_CORE = `<?xml version="1.0" encoding="UTF-8"?>
 const DOCX_APP = `<?xml version="1.0" encoding="UTF-8"?>
 <Properties><Application>Microsoft Macintosh Word</Application><AppVersion>14.0000</AppVersion><Words>0</Words><Characters>0</Characters><Pages>1</Pages><TotalTime>0</TotalTime></Properties>`
 
-function buildDocx() {
+function buildDocx(documentXml = DOCX_DOCUMENT) {
   return writeZip([
     { name: '_rels/.rels', data: Buffer.from('<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail" Target="docProps/thumbnail.jpeg"/></Relationships>') },
-    { name: 'word/document.xml', data: Buffer.from(DOCX_DOCUMENT) },
+    { name: 'word/document.xml', data: Buffer.from(documentXml) },
     { name: 'docProps/core.xml', data: Buffer.from(DOCX_CORE) },
     { name: 'docProps/app.xml', data: Buffer.from(DOCX_APP) },
     { name: 'docProps/thumbnail.jpeg', data: Buffer.from([0xff, 0xd8, 0xff, 0xd9]) },
@@ -156,6 +156,17 @@ test('a document that only repeats the template has no actionable findings', () 
   const result = checkPunctuation(base, { baseline: new Set(base), baselineKeys: baseKeys })
   assert.equal(result.own.count, 0)
   assert.equal(result.inherited.count, 2)
+})
+
+test('punctuation findings carry per-occurrence samples for the panel', () => {
+  const paragraphs = ['第一段,有错误。', '第二段,也有错误。', '第三段,仍然有错误。']
+  const body = paragraphs.map((text) => `<w:p><w:r><w:t>${text}</w:t></w:r></w:p>`).join('')
+  const xml = `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}</w:body></w:document>`
+  const result = finalizeDocx(buildDocx(xml), { author: '', textCheck: { punctuation: true } })
+  const item = result.report.unresolved.find((entry) => entry.item === '标点')
+  assert.ok(item)
+  assert.equal(item.samples.length, 3)
+  assert.ok(item.samples.every((sample) => sample.before && sample.after && sample.rule))
 })
 
 test('unbalanced quotes are reported', () => {
