@@ -139,6 +139,25 @@ test('list numbers such as 1. are not mistaken for punctuation errors', () => {
   assert.equal(checkPunctuation(['3.2 课程设置与学分要求']).total, 0)
 })
 
+test('template text and template style are never actionable', () => {
+  const base = ['一: 项目背景']
+  const baseKeys = new Set(checkPunctuation(base).findings.map((finding) => finding.key))
+  const chunks = ['一: 项目背景', '二: 新增章节,包含英文逗号']
+  const result = checkPunctuation(chunks, { baseline: new Set(base), baselineKeys: baseKeys })
+  assert.equal(result.inherited.count, 1)
+  assert.equal(result.convention.count, 1)
+  assert.equal(result.own.count, 1)
+  assert.ok(result.own.groups.every((group) => group.rule === 'cjk-ascii'))
+})
+
+test('a document that only repeats the template has no actionable findings', () => {
+  const base = ['一: 项目背景', '二: 现有内容']
+  const baseKeys = new Set(checkPunctuation(base).findings.map((finding) => finding.key))
+  const result = checkPunctuation(base, { baseline: new Set(base), baselineKeys: baseKeys })
+  assert.equal(result.own.count, 0)
+  assert.equal(result.inherited.count, 2)
+})
+
 test('unbalanced quotes are reported', () => {
   const result = checkPunctuation(['他说：“你好。'])
   assert.ok(result.groups.some((group) => group.rule === 'quotes'))

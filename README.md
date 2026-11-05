@@ -46,6 +46,10 @@ Findings are **reported, never rewritten** — a blind character swap damages co
 
 PDF text is decoded from the text layer: Flate content streams, `Tj`/`TJ` operators and per-font `ToUnicode` maps, including Identity-H CID fonts, so Word and LibreOffice exports are covered. Scanned pages, fonts without a `ToUnicode` map and text drawn as outlines cannot be read — those files are reported as *not checked* rather than guessed at.
 
+**Only your own text is judged.** When the delivered document reuses paragraphs from a file the user supplied, those paragraphs are treated as the template: they are never listed as problems, and their punctuation style becomes the accepted style for new text — a template that writes `一:` makes the assistant's `二:` correct, not an error. Text the user edited themselves falls into the same bucket: noted, never changed.
+
+Detection is automatic: the newest sibling Office file that is older than the delivery and shares at least a quarter of its paragraphs (minimum three) becomes the baseline. `textCheck.templates` pins explicit paths, `textCheck.baseline: false` turns detection off.
+
 ## Install
 
 The plugin is a DSH bundle — a plain package with a `dsh.bundle.patch`; there is no build step and no runtime dependency.
@@ -88,6 +92,8 @@ The panel also offers **Scan recent files**, which runs the pass on the newest O
     textCheck:
       punctuation: true
       languages: [zh, ja, en, fr, ko, de]
+      templates: []
+      baseline: true
     report:
       surface: panel
 ```
@@ -103,6 +109,8 @@ The panel also offers **Scan recent files**, which runs the pass on the newest O
 | `autoFix.recomputeStats` | boolean | `true` | Recompute word/character/paragraph counters from the body. |
 | `textCheck.punctuation` | boolean | `true` | Run the punctuation check on document text. |
 | `textCheck.languages` | string[] | all six | Language codes the checker may flag: `zh`, `ja`, `ko`, `en`, `fr`, `de`. |
+| `textCheck.templates` | string[] | `[]` | Explicit template paths, relative to the delivered file. |
+| `textCheck.baseline` | boolean | `true` | Auto-detect the template by paragraph overlap when no explicit path is set. |
 | `report.surface` | `panel` \| `silent` | `panel` | Whether the action-row button renders. |
 
 ## Repository layout

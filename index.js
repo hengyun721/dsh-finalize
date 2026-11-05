@@ -9,9 +9,10 @@
  */
 import { readFile, writeFile, stat, readdir, appendFileSync } from 'node:fs'
 import { promisify } from 'node:util'
-import { basename, extname, join } from 'node:path'
+import { basename, dirname, extname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
-import { finalizeOffice } from './lib/office.js'
+import { finalizeOffice, extractParagraphs } from './lib/office.js'
+import { checkPunctuation } from './lib/punctuation.js'
 
 export const name = 'dsh-finalize'
 
@@ -78,6 +79,58 @@ function filesOf(args) {
   return [...new Set(out)]
 }
 
+const normalize = (text) => String(text ?? '').replace(/\s+/g, ' ').trim()
+
+/**
+ * Find the document the user supplied and read its paragraphs.
+ *
+ * Explicit `textCheck.templates` wins. Otherwise the newest sibling Office file
+ * that shares at least a quarter of the delivered paragraphs (and at least
+ * three of them) is treated as the template. Text found there is never reported
+ * as a problem to fix, and its punctuation style becomes the accepted style.
+ */
+async function findBaseline(path, ext, config, deliveredBytes) {
+  if (config?.textCheck?.punctuation === false) return null
+  if (config?.textCheck?.baseline === false) return null
+  const dir = dirname(path)
+  const delivered = extractParagraphs(deliveredBytes, ext)
+  if (delivered.length < 3) return null
+  const deliveredSet = new Set(delivered.map(normalize))
+
+  const explicit = config?.textCheck?.templates ?? []
+  const candidates = []
+  if (explicit.length > 0) {
+    for (const name of explicit) candidates.push(resolve(dir, name))
+  } else {
+    let names = []
+    try { names = await readdirAsync(dir) } catch { return null }
+    const own = await statAsync(path)
+    for (const name of names) {
+      const kind = extname(name).toLowerCase().replace('.', '')
+      if (!OFFICE.has(kind) || resolve(dir, name) === resolve(path)) continue
+      try {
+        const info = await statAsync(resolve(dir, name))
+        if (info.isFile() && info.mtimeMs < own.mtimeMs) candidates.push({ path: resolve(dir, name), mtime: info.mtimeMs })
+      } catch { /* skip */ }
+    }
+    candidates.sort((a, b) => b.mtimeMs - a.mtimeMs)
+    candidates.splice(6)
+  }
+
+  for (const candidate of candidates) {
+    const file = typeof candidate === 'string' ? candidate : candidate.path
+    try {
+      const chunks = extractParagraphs(await readFileAsync(file), extname(file).toLowerCase().replace('.', ''))
+      if (chunks.length < 3) continue
+      const overlap = chunks.filter((chunk) => deliveredSet.has(normalize(chunk))).length
+      if (explicit.length === 0 && overlap < Math.max(3, Math.ceil(delivered.length * 0.25))) continue
+      const findings = checkPunctuation(chunks, { languages: config?.textCheck?.languages }).findings
+      return { set: new Set(chunks.map(normalize)), keys: new Set(findings.map((finding) => finding.key)), name: basename(file) }
+    } catch { /* unreadable candidate */ }
+  }
+  return null
+}
+
 async function processOne(path, config) {
   const ext = extname(path).toLowerCase().replace('.', '')
   const entry = { path, name: basename(path), format: ext, fixed: [], unresolved: [], notes: [] }
@@ -88,7 +141,8 @@ async function processOne(path, config) {
   try {
     const info = await statAsync(path)
     const bytes = await readFileAsync(path)
-    const result = finalizeOffice(bytes, ext, { ...(config?.autoFix ?? {}), textCheck: config?.textCheck })
+    const baseline = await findBaseline(path, ext, config, bytes)
+    const result = finalizeOffice(bytes, ext, { ...(config?.autoFix ?? {}), textCheck: config?.textCheck, baseline })
     if (result.bytes !== bytes) await writeFileAsync(path, result.bytes)
     entry.fixed = result.report.fixed
     entry.unresolved = result.report.unresolved
@@ -96,6 +150,7 @@ async function processOne(path, config) {
     entry.sizeBefore = bytes.length
     entry.sizeAfter = result.bytes.length
     entry.mtime = info.mtime.toISOString()
+    if (baseline) entry.baseline = baseline.name
   } catch (error) {
     entry.error = error instanceof Error ? error.message : String(error)
   }

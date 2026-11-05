@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-11-05
+
+### Changed
+
+- The punctuation check now judges only text the assistant produced. Paragraphs
+  that match a document the user supplied are reported as `inherited` (note, not
+  a problem), and a finding whose local signature also occurs in that document is
+  `convention` — the assistant followed the template's own style, correct even
+  when the style is non-standard (for example `一:` instead of `一：`).
+- Any existing text, including paragraphs the user edited, is only ever reported:
+  the plugin never rewrites it.
+
+### Added
+
+- Automatic template detection: the newest sibling Office file that is older than
+  the delivery and shares at least 25% of its paragraphs (minimum 3) becomes the
+  baseline. `textCheck.templates` pins explicit paths, `textCheck.baseline: false`
+  disables detection.
+
 ## [0.5.0] - 2026-11-05
 
 ### Added

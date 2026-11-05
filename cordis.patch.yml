@@ -31,5 +31,7 @@
             - fr
             - ko
             - de
+          templates: []
+          baseline: true
         report:
           surface: panel

@@ -46,6 +46,10 @@
 
 PDF 会尝试解码文本层：Flate 压缩的内容流、`Tj`/`TJ` 操作符，以及每个字体的 `ToUnicode` 映射（含 Identity-H CID 字体），所以 Word / LibreOffice 导出的 PDF 能覆盖。扫描件、没有 `ToUnicode` 的字体、把文字转成轮廓的页面读不出来——这类文件会明确标注「未检查」，而不是猜。
 
+**只判断你自己写的内容。** 交付的文档如果复用了用户提供的文档里的段落，这些段落视为模板：不会被列为待修问题，而且它们的标点风格会成为新内容的基准——模板写「一:」，接着写「二:」就是符合模板，不算错误。用户自己改过的段落同理：只提示，不改。
+
+检测是自动的：同目录里修改时间更早、且至少四分之一段落（最少 3 段）与交付文件重合的最新 Office 文件，会被当作基线。`textCheck.templates` 可指定固定路径，`textCheck.baseline: false` 关闭自动检测。
+
 ## 安装
 
 这是一个 DSH bundle：带 `dsh.bundle.patch` 的普通包，没有构建步骤，也没有运行时依赖。
@@ -88,6 +92,8 @@ dsh plugin --profile desktop add /绝对路径/dsh-finalize
     textCheck:
       punctuation: true
       languages: [zh, ja, en, fr, ko, de]
+      templates: []
+      baseline: true
     report:
       surface: panel
 ```
@@ -103,6 +109,8 @@ dsh plugin --profile desktop add /绝对路径/dsh-finalize
 | `autoFix.recomputeStats` | boolean | `true` | 按正文重算字数、字符数、段落数。 |
 | `textCheck.punctuation` | boolean | `true` | 是否对正文做标点检查。 |
 | `textCheck.languages` | string[] | 全部六种 | 允许被检查的语言：`zh`、`ja`、`ko`、`en`、`fr`、`de`。 |
+| `textCheck.templates` | string[] | `[]` | 显式指定模板路径（相对交付文件所在目录）。 |
+| `textCheck.baseline` | boolean | `true` | 未指定模板时，按段落重合度自动识别基线。 |
 | `report.surface` | `panel` \| `silent` | `panel` | 是否渲染操作栏按钮。 |
 
 ## 仓库结构
