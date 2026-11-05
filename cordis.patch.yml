@@ -22,5 +22,14 @@
           stripGeneratorFields: true
           dropApplicationField: true
           recomputeStats: true
+        textCheck:
+          punctuation: true
+          languages:
+            - zh
+            - ja
+            - en
+            - fr
+            - ko
+            - de
         report:
           surface: panel

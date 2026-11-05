@@ -1,5 +1,5 @@
 /**
- * Smoke tests for lib/office.js.
+ * Smoke tests for lib/office.js and lib/punctuation.js.
  *
  * Fixtures are built in memory with the module's own writeZip, so the suite has
  * no files on disk and no dependency. Run with `npm test` (in-process, works in
@@ -8,6 +8,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { finalizeOdf, finalizeDocx, inspectPdf, readZip, writeZip } from '../lib/office.js'
+import { checkPunctuation, detectLanguage } from '../lib/punctuation.js'
 
 const ODF_CONTENT = `<?xml version="1.0" encoding="UTF-8"?>
 <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" office:version="1.2">
@@ -93,4 +94,47 @@ test('pdf: reports producer and incremental updates without rewriting', () => {
 
 test('a non-zip buffer is rejected instead of silently passing', () => {
   assert.throws(() => finalizeOdf(Buffer.from('x'), 'odt', {}), /not a zip container/)
+})
+
+test('language detection covers the six supported languages', () => {
+  assert.equal(detectLanguage('这是一个中文段落。'), 'zh')
+  assert.equal(detectLanguage('これはテストです。'), 'ja')
+  assert.equal(detectLanguage('이것은 테스트입니다.'), 'ko')
+  assert.equal(detectLanguage('This is a plain English sentence.'), 'en')
+  assert.equal(detectLanguage("C'est une phrase avec des mots français."), 'fr')
+  assert.equal(detectLanguage('Das ist ein Satz mit einem Wort.'), 'de')
+})
+
+test('chinese text with ascii punctuation is reported', () => {
+  const result = checkPunctuation(['这是一个测试,包含英文逗号.'])
+  assert.ok(result.total >= 2)
+  const rule = result.groups.find((group) => group.rule === 'cjk-ascii')
+  assert.ok(rule)
+  assert.equal(rule.samples[0].after.includes('，'), true)
+})
+
+test('english text with fullwidth punctuation is reported', () => {
+  const result = checkPunctuation(['This is a test，with a fullwidth comma.'])
+  const rule = result.groups.find((group) => group.rule === 'latin-fullwidth')
+  assert.ok(rule)
+  assert.equal(rule.count, 1)
+})
+
+test('japanese rejects the chinese comma, korean rejects fullwidth', () => {
+  assert.ok(checkPunctuation(['これはテスト，です。']).groups.some((group) => group.rule === 'ja-comma'))
+  assert.ok(checkPunctuation(['이것은 테스트，입니다.']).groups.some((group) => group.rule === 'ko-fullwidth'))
+})
+
+test('correct french and german text produces no findings', () => {
+  assert.equal(checkPunctuation(["C'est une phrase, avec une virgule."]).total, 0)
+  assert.equal(checkPunctuation(['Das ist ein Test, mit einem Komma.']).total, 0)
+})
+
+test('urls and decimals are not treated as punctuation errors', () => {
+  assert.equal(checkPunctuation(['访问 https://example.com/a,b 查看版本 1.5 的说明。']).total, 0)
+})
+
+test('unbalanced quotes are reported', () => {
+  const result = checkPunctuation(['他说：“你好。'])
+  assert.ok(result.groups.some((group) => group.rule === 'quotes'))
 })

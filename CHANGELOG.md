@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-05
+
+### Added
+
+- Punctuation check for document text: detects the paragraph language (`zh`,
+  `ja`, `ko`, `en`, `fr`, `de`) and reports punctuation that does not belong to
+  it — ASCII marks inside Chinese/Japanese text, fullwidth marks inside Latin or
+  Korean text, the Chinese comma in Japanese, spaces before punctuation,
+  repeated marks and unbalanced quotes.
+- Skips URLs, e-mail addresses, paths and decimals; spreadsheet cells are only
+  checked when longer than eight characters. PDF text layers are not checked.
+- `textCheck.punctuation` and `textCheck.languages` configuration.
+
 ## [0.3.0] - 2026-11-02
 
 ### Added

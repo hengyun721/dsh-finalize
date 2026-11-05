@@ -88,7 +88,7 @@ async function processOne(path, config) {
   try {
     const info = await statAsync(path)
     const bytes = await readFileAsync(path)
-    const result = finalizeOffice(bytes, ext, config?.autoFix ?? {})
+    const result = finalizeOffice(bytes, ext, { ...(config?.autoFix ?? {}), textCheck: config?.textCheck })
     if (result.bytes !== bytes) await writeFileAsync(path, result.bytes)
     entry.fixed = result.report.fixed
     entry.unresolved = result.report.unresolved
