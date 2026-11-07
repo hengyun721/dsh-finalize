@@ -226,6 +226,27 @@ test('xlsx and pptx review states find hidden sheets and hidden slides', () => {
   assert.ok(deck.hidden.some((item) => item.label === '隐藏幻灯片' && item.detail.includes('1 / 2')))
 })
 
+test('docx neutral paste shading is stripped, explicit highlight is kept', () => {
+  const body = [
+    '<w:p><w:r><w:rPr><w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/></w:rPr><w:t>灰底文字</w:t></w:r></w:p>',
+    '<w:p><w:r><w:rPr><w:highlight w:val="yellow"/></w:rPr><w:t>黄色高亮</w:t></w:r></w:p>',
+  ].join('')
+  const xml = `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}</w:body></w:document>`
+  const result = finalizeDocx(buildDocx(xml), { author: '' })
+  const documentXml = readZip(result.bytes).find((entry) => entry.name === 'word/document.xml').data.toString('utf8')
+  assert.ok(!documentXml.includes('w:fill="F2F2F2"'))
+  assert.ok(documentXml.includes('w:highlight'))
+  assert.ok(result.report.fixed.some((item) => item.item === '文字底纹'))
+  assert.ok(result.report.unresolved.some((item) => item.item === '文字底色'))
+})
+
+test('shading removal can be turned off', () => {
+  const xml = `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:rPr><w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/></w:rPr><w:t>灰底文字</w:t></w:r></w:p></w:body></w:document>`
+  const result = finalizeDocx(buildDocx(xml), { author: '', stripTextShading: false })
+  const documentXml = readZip(result.bytes).find((entry) => entry.name === 'word/document.xml').data.toString('utf8')
+  assert.ok(documentXml.includes('w:fill="F2F2F2"'))
+})
+
 test('unbalanced quotes are reported', () => {
   const result = checkPunctuation(['他说：“你好。'])
   assert.ok(result.groups.some((group) => group.rule === 'quotes'))

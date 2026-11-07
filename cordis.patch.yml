@@ -22,6 +22,7 @@
           stripGeneratorFields: true
           dropApplicationField: true
           recomputeStats: true
+          stripTextShading: true
         textCheck:
           punctuation: true
           languages:

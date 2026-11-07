@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-11-07
+
+### Added
+
+- Text-background audit. Run shading (`w:shd`) with a neutral grey/blue fill —
+  the usual paste or conversion residue — is removed and listed under `已修`;
+  every other fill colour and every explicit highlight (`w:highlight`,
+  `a:highlight`, `text:background-color`) is reported with a sample of the text.
+- `autoFix.stripTextShading` (default `true`); set it to `false` for
+  report-only behaviour.
+
 ## [0.9.0] - 2026-11-07
 
 ### Added
