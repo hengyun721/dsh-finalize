@@ -10,6 +10,7 @@ import assert from 'node:assert/strict'
 import { join } from 'node:path'
 import { finalizeOdf, finalizeDocx, finalizeOffice, inspectPdf, readZip, writeZip } from '../lib/office.js'
 import { checkPunctuation, detectLanguage } from '../lib/punctuation.js'
+import { reviewState, foldReview } from '../lib/review.js'
 import { resolveTarget } from '../index.js'
 
 const ODF_CONTENT = `<?xml version="1.0" encoding="UTF-8"?>
@@ -176,6 +177,53 @@ test('relative delivery paths resolve against the session cwd', () => {
   assert.equal(resolveTarget(base, 'a/b.docx'), join(base, 'a', 'b.docx'))
   const absolute = join(base, 'x.docx')
   assert.equal(resolveTarget(base, absolute), absolute)
+})
+
+test('docx review state finds comments, revisions and hidden text', () => {
+  const entries = [
+    {
+      name: 'word/document.xml',
+      data: Buffer.from('<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:rPr><w:vanish/></w:rPr><w:t>秘密</w:t></w:r></w:p><w:p><w:ins w:author="张三" w:date="2026-11-01T00:00:00Z"><w:r><w:t>新增</w:t></w:r></w:ins></w:p></w:body></w:document>'),
+    },
+    {
+      name: 'word/comments.xml',
+      data: Buffer.from('<w:comments><w:comment w:id="1" w:author="李四" w:date="2026-11-02T00:00:00Z"><w:p><w:r><w:t>这里数据存疑</w:t></w:r></w:p></w:comment></w:comments>'),
+    },
+  ]
+  const review = reviewState(entries, 'docx')
+  assert.equal(review.comments.length, 1)
+  assert.equal(review.comments[0].author, '李四')
+  assert.equal(review.comments[0].text, '这里数据存疑')
+  assert.equal(review.revisions.total, 1)
+  assert.ok(review.hidden.some((item) => item.label === '隐藏文字'))
+
+  const report = { fixed: [], unresolved: [], notes: [] }
+  foldReview(report, review, 'docx')
+  assert.equal(report.unresolved.length, 3)
+  assert.ok(report.unresolved.some((item) => item.item === '批注' && item.samples.length === 1))
+})
+
+test('a clean document reports review state as a note, not a problem', () => {
+  const review = reviewState([{ name: 'word/document.xml', data: Buffer.from('<w:document/>') }], 'docx')
+  const report = { fixed: [], unresolved: [], notes: [] }
+  foldReview(report, review, 'docx')
+  assert.equal(report.unresolved.length, 0)
+  assert.equal(report.notes[0].item, '审阅状态')
+})
+
+test('xlsx and pptx review states find hidden sheets and hidden slides', () => {
+  const workbook = reviewState([
+    { name: 'xl/workbook.xml', data: Buffer.from('<workbook><sheets><sheet name="内部" state="hidden"/><sheet name="公开"/></sheets></workbook>') },
+  ], 'xlsx')
+  assert.equal(workbook.hidden[0].label, '隐藏工作表')
+  assert.equal(workbook.hidden[0].detail, '内部')
+
+  const deck = reviewState([
+    { name: 'ppt/presentation.xml', data: Buffer.from('<p:presentation><p:sldIdLst><p:sldId id="256" r:id="rId2"/><p:sldId id="257" r:id="rId3" show="0"/></p:sldIdLst></p:presentation>') },
+    { name: 'ppt/slides/slide1.xml', data: Buffer.from('<p:sld/>') },
+    { name: 'ppt/slides/slide2.xml', data: Buffer.from('<p:sld/>') },
+  ], 'pptx')
+  assert.ok(deck.hidden.some((item) => item.label === '隐藏幻灯片' && item.detail.includes('1 / 2')))
 })
 
 test('unbalanced quotes are reported', () => {

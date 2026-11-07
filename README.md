@@ -21,10 +21,10 @@ The usual advice — forge the edit time, invent a revision count — makes thin
 
 | Format | Automatic fixes | Reported, never fixed |
 |---|---|---|
-| `docx` | creator and description, template date, `Application`/`AppVersion`, word/character/paragraph/line counts, template thumbnail | `TotalTime=0`, missing comments, missing tracked changes, page count |
-| `pptx` | same core properties, slide/notes/hidden-slide counts, word counts | no speaker notes, cropped images still in `ppt/media`, hidden slides |
-| `xlsx` | core properties, `TitlesOfParts` aligned to sheet names | zero formulas, pivot cache retaining deleted rows, external links, hidden sheets |
-| `odt` `ods` `odp` | `meta:generator`, creator, dates, `meta:document-statistic`, thumbnail and its manifest entry | `meta:editing-duration=PT0S`, single save cycle, no annotations, no tracked changes |
+| `docx` | creator and description, template date, `Application`/`AppVersion`, word/character/paragraph/line counts, template thumbnail | `TotalTime=0`, page count, punctuation, unresolved comments, unaccepted revisions, hidden and white text |
+| `pptx` | same core properties, slide/notes/hidden-slide counts, word counts | no speaker notes, cropped images still in `ppt/media`, hidden slides and shapes, comments, speaker notes |
+| `xlsx` | core properties, `TitlesOfParts` aligned to sheet names | zero formulas, pivot cache retaining deleted rows, external links, hidden sheets, rows and columns, comments |
+| `odt` `ods` `odp` | `meta:generator`, creator, dates, `meta:document-statistic`, thumbnail and its manifest entry | `meta:editing-duration=PT0S`, single save cycle, annotations, hidden text and sheets |
 | `pdf` | **nothing — read-only by design** | Producer/Creator/XMP, incremental updates, missing bookmarks, signatures, punctuation in extractable text |
 
 Several files in one delivery are processed independently. Several deliveries in one session merge into a single report for 30 minutes instead of overwriting each other.
@@ -49,6 +49,18 @@ PDF text is decoded from the text layer: Flate content streams, `Tj`/`TJ` operat
 **Only your own text is judged.** When the delivered document reuses paragraphs from a file the user supplied, those paragraphs are treated as the template: they are never listed as problems, and their punctuation style becomes the accepted style for new text — a template that writes `一:` makes the assistant's `二:` correct, not an error. Text the user edited themselves falls into the same bucket: noted, never changed.
 
 Detection is automatic: the newest sibling Office file that is older than the delivery and shares at least a quarter of its paragraphs (minimum three) becomes the baseline. `textCheck.templates` pins explicit paths, `textCheck.baseline: false` turns detection off.
+
+## Review state
+
+A document carries more than its visible pages. Before delivery the plugin reports what still travels with the file:
+
+| Finding | Detail |
+|---|---|
+| Unresolved comments | count, authors, date and text of each comment (docx, pptx, xlsx, odf) |
+| Unaccepted revisions | count, authors, and the text that was deleted (docx) |
+| Hidden content | hidden text, white text, hidden slides and shapes, speaker notes, hidden sheets, rows and columns |
+
+Every finding is listed per file and expands into individual items in the panel. Nothing is deleted or accepted automatically — whether a comment is an internal note or an intentional annotation is your decision. A clean document gets one line: `审阅状态：无批注、无修订、无隐藏内容`.
 
 ## Install
 

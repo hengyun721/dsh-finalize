@@ -69,26 +69,31 @@ window.__ModuleLoader__.load({
     function UnresolvedItem({ item }) {
       const [open, setOpen] = useState(false)
       const samples = item.samples ?? []
-      return h('div', { style: { borderTop: `1px solid ${tone.line}`, padding: '8px 0' } },
-        h('div', { style: { fontSize: 12, color: tone.warn, fontWeight: 600 } }, `${LABELS.open} · ${item.item}`),
-        h('div', { style: { fontSize: 12, color: tone.text, marginTop: 2 } }, item.detail),
-        h('div', { style: { fontSize: 11, color: tone.sub, marginTop: 2 } }, item.hint),
-        samples.length > 0 ? h('button', {
-          type: 'button',
-          onClick: () => setOpen((value) => !value),
-          style: {
-            marginTop: 6, padding: '2px 8px', border: `1px solid ${tone.line}`, borderRadius: 6,
-            background: 'transparent', color: tone.accent, fontSize: 11, cursor: 'pointer',
-          },
-        }, open ? LABELS.collapse : `${LABELS.expand} ${samples.length}`) : null,
-        open ? h('div', { style: { marginTop: 8, maxHeight: 260, overflow: 'auto' } },
+      const toggle = h('button', {
+        type: 'button',
+        onClick: () => setOpen((value) => !value),
+        style: {
+          marginTop: 6, padding: '2px 8px', border: `1px solid ${tone.line}`, borderRadius: 6,
+          background: 'transparent', color: tone.accent, fontSize: 11, cursor: 'pointer',
+        },
+      }, open ? LABELS.collapse : `${LABELS.expand} ${samples.length}`)
+      const expanded = open
+        ? h('div', { style: { marginTop: 8, maxHeight: 260, overflow: 'auto' } },
           samples.map((sample, index) => h('div', {
             key: index,
             style: { padding: '6px 0', borderTop: index === 0 ? 'none' : `1px dashed ${tone.line}` },
           },
           h('div', { style: { fontSize: 10, color: tone.sub } }, sample.rule),
-          h('div', { style: { fontSize: 11, color: tone.text, marginTop: 2, wordBreak: 'break-word' } }, `原文：${sample.before}`),
-          h('div', { style: { fontSize: 11, color: tone.accent, marginTop: 2, wordBreak: 'break-word' } }, `建议：${sample.after}`)))) : null)
+          sample.detail ? h('div', { style: { fontSize: 11, color: tone.text, marginTop: 2, wordBreak: 'break-word' } }, sample.detail) : null,
+          sample.before ? h('div', { style: { fontSize: 11, color: tone.text, marginTop: 2, wordBreak: 'break-word' } }, `原文：${sample.before}`) : null,
+          sample.after ? h('div', { style: { fontSize: 11, color: tone.accent, marginTop: 2, wordBreak: 'break-word' } }, `建议：${sample.after}`) : null)))
+        : null
+      return h('div', { style: { borderTop: `1px solid ${tone.line}`, padding: '8px 0' } },
+        h('div', { style: { fontSize: 12, color: tone.warn, fontWeight: 600 } }, `${LABELS.open} · ${item.item}`),
+        h('div', { style: { fontSize: 12, color: tone.text, marginTop: 2 } }, item.detail),
+        h('div', { style: { fontSize: 11, color: tone.sub, marginTop: 2 } }, item.hint),
+        samples.length > 0 ? toggle : null,
+        expanded)
     }
 
     function FileBlock({ file }) {

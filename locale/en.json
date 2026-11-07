@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Delivery check",
-    "description": "Runs once before delivery: strips python-docx / python-pptx / openpyxl / LibreOffice fingerprints, recomputes real statistics, checks punctuation across Chinese, Japanese, Korean, English, French and German, and collects every item that would require fabrication into a side panel. Supports docx, pptx, xlsx, odt, ods, odp, and read-only pdf."
+    "description": "Runs once before delivery: strips generator fingerprints, recomputes real statistics, checks punctuation across six languages, and reports unresolved comments, unaccepted revisions and hidden content. Supports docx, pptx, xlsx, odt, ods, odp, and read-only pdf."
   }
 }
